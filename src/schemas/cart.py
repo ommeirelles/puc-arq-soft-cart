@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from schemas import Product
+from schemas import Product, ProductCartEntry
 
 class Cart(BaseModel):
     """
@@ -16,4 +16,4 @@ class CartSummary(BaseModel):
     id: int = Field(gt=0)
     guid: str = Field(min_length=36, max_length=36)
     total: float = Field()
-    items: list[Product] = Field()
+    items: list[ProductCartEntry] = Field()

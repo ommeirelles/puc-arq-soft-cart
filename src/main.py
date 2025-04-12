@@ -11,6 +11,14 @@ app = OpenAPI(__name__, info=info)
 app.register_api(product_blueprint)
 app.register_api(cart_blueprint)
 
+@app.after_request
+def applyCORS(response):
+    response.headers.add('Accept', '*/*')
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', '*')
+    response.headers.add('Access-Control-Allow-Headers', '*')
+    return response
+
 if __name__ == "__main__":
     isDev: bool = environ.get('ENV', "production") == 'development'
     db_url = "sqlite:///" + getcwd() + "/db/" + environ.get("DB_NAME", "cart") + ".db"

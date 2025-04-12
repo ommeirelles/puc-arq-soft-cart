@@ -26,7 +26,7 @@ def new_cart():
 class CartPath(BaseModel):
     guid: str = Field(..., description="Cart GUID")
 
-@cart_blueprint.get("/summary", summary="Gets cart summary", tags=[cart_tag], responses={200: Cart, 400: ErrorSchema})
+@cart_blueprint.get("/summary", summary="Gets cart summary", tags=[cart_tag], responses={200: CartSummary, 400: ErrorSchema})
 def summary(query: CartPath):
     """
         Summary of the cart
@@ -39,9 +39,9 @@ def summary(query: CartPath):
     prodService = ProductService()
     items = cartService.getCartSummary(cart)
     summary = CartSummary(id=cart.id, guid=cart.guid, total=0, items=[])
-    for item in items:
+    for item in list(items):
         product = prodService.getProduct(item.product_id)
         summary.total += product.price
-        summary.items.append(product)
+        summary.items.append(ProductCartEntry(product_id=product.id, id=item.id, cart_guid=cart.guid, deleted=item.deleted))
 
     return summary.model_dump(), 200

@@ -14,7 +14,8 @@
         "DB_NAME": "cart",
         "PORT": "8000",
         "PRODUCT_API_URL": "https://fakestoreapi.com/",
-        "SECRET": "SSS"
+        "SECRET": "SSS",
+        "ENV": "development"
       }
     }
   ]

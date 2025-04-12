@@ -1,18 +1,11 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, update
 from models import CartProductModel, CartModel, Session
 
 class CartService:
-    __instance = None
-
-    def __init__(self):
-        if (CartService.__instance != None):
-            self = CartService.__instance
-        else:
-            CartService.__instance = self
-
-    def addProductToCart(self, product_id: int, cart: CartModel, quantity: int):
-        with Session() as session:
-            for i in range(quantity):
+    def addProductToCart(self, product_id: int, cart: CartModel, quantity: int) -> list[CartProductModel]:
+        products: list[CartProductModel] = []
+        for i in range(quantity):
+            with Session() as session:
                 cart_product = CartProductModel()
                 cart_product.cart_guid = cart.guid
                 cart_product.product_id = product_id
@@ -20,13 +13,16 @@ class CartService:
 
                 session.add(cart_product)
                 session.commit()
+                session.refresh(cart_product)
+                products.append(cart_product)
+        
+        return products
+
+        return products
 
     def getCartSummary(self, cart: CartModel) -> list[CartProductModel]:
         return Session().execute(
-            select(CartProductModel).where(
-                CartProductModel.cart_guid == cart.guid and 
-                CartProductModel.deleted == False
-            )
+            select(CartProductModel).where(CartProductModel.cart_guid == cart.guid, CartProductModel.deleted == False)
         ).scalars()
     
     def getCart(self, guid: str) -> CartModel | None:
@@ -48,17 +44,18 @@ class CartService:
     def removeFromCart(self, row_id: int, cart: CartModel):
         with Session() as session:
             session.execute(
-                delete(CartProductModel).where(
-                    CartProductModel.id == row_id and 
+                update(CartProductModel).where(
+                    CartProductModel.id == row_id, 
                     CartProductModel.cart_guid == cart.guid
-                )
+                ).values(deleted=True)
             )
+            session.commit()
 
     def cartContains(self, row_id: int, cart: CartModel) -> bool:
         with Session() as session:
             return session.execute(
                 select(CartProductModel).where(
-                    CartProductModel.id == row_id and 
+                    CartProductModel.id == row_id, 
                     CartProductModel.cart_guid == cart.guid
                 )
             ).scalar_one_or_none() != None

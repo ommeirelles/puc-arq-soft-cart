@@ -26,7 +26,7 @@ class AddProductCartQuery(BaseModel):
     cart_guid: str = Field()
     quantity: int = Field(gt=0)
 
-@product_blueprint.post("/<int:product_id>", summary="Add a product to the cart by ID", tags=[product_tag], responses={200: Product, 400: ErrorSchema})
+@product_blueprint.post("/<int:product_id>", summary="Add a product to the cart by ID", tags=[product_tag], responses={200: ProductCartData, 400: ErrorSchema})
 def addProductToCart(path: AddProductCartPath, query: AddProductCartQuery):
     """
         Add a product by it's ID to the cart
@@ -36,8 +36,9 @@ def addProductToCart(path: AddProductCartPath, query: AddProductCartQuery):
     try:
         product = ProductService().getProduct(path.product_id)
         cart = CartService().getCart(query.cart_guid)
-        CartService().addProductToCart(product.id, cart, query.quantity)
-        return product.model_dump(), 200
+        products = CartService().addProductToCart(product.id, cart, query.quantity)
+        
+        return ProductCartData(data=[ProductCartEntry(product_id=prod.id, cart_guid=query.cart_guid, deleted=False, id=prod.id) for prod in products]).model_dump(), 200
     except Exception as e:
         return {"message": f"Error retrieving product: {str(e)}"}, 404
     
@@ -48,15 +49,21 @@ class RemoveFromCartPath(BaseModel):
         Defines the path for removing a product from the cart
     """
     row_id: int = Field(..., description="The row ID of the product to remove from the cart")
+
+class RemoveFromCartQuery(BaseModel):
+    """
+        Defines the query for removing a product from the cart
+    """
     cart_guid: str = Field(..., description="The cart GUID of the product to remove from the cart")
+    
 
 @product_blueprint.delete("/<int:row_id>", summary="Removes a product insertion from the cart ", tags=[product_tag], responses={200: SuccessSchema, 400: ErrorSchema})
-def removeFromCart(path: RemoveFromCartPath):
+def removeFromCart(path: RemoveFromCartPath, query: RemoveFromCartQuery):
     """
         Removes a product insertion from the cart
     """
     service = CartService()
-    cart = service.getCart(path.cart_guid)
+    cart = service.getCart(query.cart_guid)
     if (cart == None):
         return {"message": "Cart not found"}, 400
 
