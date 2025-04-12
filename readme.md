@@ -24,3 +24,12 @@ The API provides OpenAPI/Swagger documentation at the `/openapi` endpoint when r
 - GET:/cart/summary
 - POST:/product/:prod_id
 - DELETE /product/:cart_prod_entry_id
+
+## Architecture Overview
+
+This app follows a microservice architecture where it communicates with the product service (fake store) and is a service that the front-end uses to manage the cart products
+
+
+## System Architecture Diagram Overview
+
+![System Architecture](/assets/arch.png)
