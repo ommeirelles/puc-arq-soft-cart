@@ -1,0 +1,25 @@
+version: "3"
+
+services:
+  soft-arq-cart:
+    build: .
+    container_name: arq-soft-cart
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - SECRET=SECRET
+      - PRODUCT_API_URL=https://fakestoreapi.com/
+      - DB_NAME=cart
+      - ENV=$ENV
+    volumes:
+      - "./src:/app/src"
+      - "./db:/app/db"
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: rebuild
+          path: requirements.txt
+
