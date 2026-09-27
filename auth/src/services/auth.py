@@ -15,9 +15,10 @@ class AuthService:
             returns a signed JWT session token valid for the
             configured TTL
         """
-        user = Session().execute(
-            select(UserModel).where(UserModel.email == email)
-        ).scalar_one_or_none()
+        with Session() as session:
+            user = session.execute(
+                select(UserModel).where(UserModel.email == email)
+            ).scalar_one_or_none()
 
         if (user == None or not check_password_hash(user.password_hash, password)):
             raise Exception("Invalid email or password")

@@ -26,6 +26,23 @@ def new_cart():
 class CartPath(BaseModel):
     guid: str = Field(..., description="Cart GUID")
 
+# Blueprint for internal routes — the /internal prefix is blocked at the
+# load balancer, so these routes are only reachable inside the docker network
+internal_blueprint = APIBlueprint('Internal', __name__, url_prefix='/internal')
+
+@internal_blueprint.post("/cart/<string:guid>/close", summary="Closes a cart, making it stale and unusable (internal route — blocked at the load balancer, reachable only inside the docker network)", tags=[cart_tag], security=[{"bearerAuth": []}], responses={200: Cart, 400: ErrorSchema})
+def close(path: CartPath):
+    """
+        Closes a cart after a successful payment, marking it as stale
+        and unusable. Internal route: not published through the load
+        balancer, only reachable from the internal docker network
+    """
+    cart = CartService().closeCart(path.guid)
+    if (cart == None):
+        return ErrorSchema(message="Cart not found").model_dump(), 400
+
+    return Cart(id=cart.id, guid=cart.guid, deleted=cart.deleted).model_dump(), 200
+
 @cart_blueprint.get("/summary", summary="Gets cart summary", tags=[cart_tag], security=[{"bearerAuth": []}], responses={200: CartSummary, 400: ErrorSchema, 502: ErrorSchema})
 def summary(query: CartPath):
     """

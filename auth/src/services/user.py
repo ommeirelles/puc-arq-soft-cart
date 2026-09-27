@@ -31,11 +31,12 @@ class UserService:
         """
             Returns the user info for the given id
         """
-        user = Session().execute(
-            select(UserModel).where(UserModel.id == user_id)
-        ).scalar_one_or_none()
+        with Session() as session:
+            user = session.execute(
+                select(UserModel).where(UserModel.id == user_id)
+            ).scalar_one_or_none()
 
-        if (user == None):
-            return None
+            if (user == None):
+                return None
 
-        return User(id=user.id, name=user.name, email=user.email)
+            return User(id=user.id, name=user.name, email=user.email)

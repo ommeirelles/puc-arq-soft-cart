@@ -66,7 +66,7 @@ def removeFromCart(path: RemoveFromCartPath, query: RemoveFromCartQuery):
     """
     service = CartService()
     cart = service.getCart(query.cart_guid)
-    if (cart == None):
+    if (cart == None or cart.deleted == True):
         return {"message": "Cart not found"}, 400
 
     if (service.cartContainsProduct(path.product_id, cart)):

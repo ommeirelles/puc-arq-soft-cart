@@ -21,16 +21,18 @@ class CartService:
         return products
 
     def getCartSummary(self, cart: CartModel) -> list[CartProductModel]:
-        return Session().execute(
-            select(CartProductModel).where(CartProductModel.cart_guid == cart.guid, CartProductModel.deleted == False)
-        ).scalars()
-    
+        with Session() as session:
+            return session.execute(
+                select(CartProductModel).where(CartProductModel.cart_guid == cart.guid, CartProductModel.deleted == False)
+            ).scalars().all()
+
     def getCart(self, guid: str) -> CartModel | None:
-        return Session().execute(
-            select(CartModel).where(
-                CartModel.guid == guid
-            )
-        ).scalar_one_or_none()
+        with Session() as session:
+            return session.execute(
+                select(CartModel).where(
+                    CartModel.guid == guid
+                )
+            ).scalar_one_or_none()
 
     def saveNewCart(self) -> CartModel:
         with Session() as session:
@@ -38,7 +40,26 @@ class CartService:
             session.add(cart)
             session.commit()
             session.refresh(cart)
-            
+
+            return cart
+
+    def closeCart(self, guid: str) -> CartModel | None:
+        """
+            Marks a cart as deleted, making it stale and unusable.
+            Returns None when the cart does not exist
+        """
+        with Session() as session:
+            cart = session.execute(
+                select(CartModel).where(CartModel.guid == guid)
+            ).scalar_one_or_none()
+
+            if (cart == None):
+                return None
+
+            cart.deleted = True
+            session.commit()
+            session.refresh(cart)
+
             return cart
         
     def removeProductFromCart(self, product_id: int, cart: CartModel, quantity: int | None = None) -> int:
