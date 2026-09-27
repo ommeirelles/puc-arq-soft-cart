@@ -75,7 +75,7 @@ endpoint when running.
 
 | Method | Path     | Description                                                            |
 | ------ | -------- | ---------------------------------------------------------------------- |
-| `POST` | `/user`  | Registers a new user `{name, email, password}`; returns `{id, name, email}`. |
+| `POST` | `/user`  | Registers a new user `{name, email, password}` (all required, valid email format); returns `{id, name, email}`. Responds `409` when the email is already registered, `422` on invalid payloads. |
 | `POST` | `/login` | Authenticates `{email, password}`; returns a signed JWT `{token}`.     |
 | `GET`  | `/user`  | Validates the `Authorization: Bearer` JWT; returns the user info.      |
 
