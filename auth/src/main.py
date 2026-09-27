@@ -22,8 +22,8 @@ def applyCORS(response):
 
 if __name__ == "__main__":
     isDev: bool = environ.get('ENV', "production") == 'development'
-    db_url = "sqlite:///" + getcwd() + "/db/" + environ.get("DB_NAME", "auth") + ".db"
-    engine = create_engine(db_url, echo=isDev)
+    db_url = environ.get("DB_URL") or "sqlite:///" + getcwd() + "/db/" + environ.get("DB_NAME", "auth") + ".db"
+    engine = create_engine(db_url, echo=isDev, pool_pre_ping=True)
     bind_engine(engine=engine)
     Base.metadata.create_all(engine)
     initTelemetry(app=app, engine=engine)

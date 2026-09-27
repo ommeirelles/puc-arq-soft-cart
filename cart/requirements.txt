@@ -19,6 +19,7 @@ requests==2.32.3
 urllib3==2.4.0
 greenlet==3.1.1
 SQLAlchemy==2.0.40
+psycopg[binary]==3.2.9
 typing_extensions==4.13.2
 opentelemetry-sdk==1.45.0
 opentelemetry-exporter-otlp-proto-grpc==1.45.0

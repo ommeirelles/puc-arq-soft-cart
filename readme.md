@@ -3,8 +3,9 @@
 Back-end microservices of the online shopping MVP developed for the Software
 Architecture post-graduation course (PUC). Both services are built with Flask
 and [flask-openapi3](https://luolingchun.github.io/flask-openapi3/) and persist
-data in SQLite via SQLAlchemy 2. The cart service integrates with the external
-[Fake Store API](https://fakestoreapi.com/).
+data through SQLAlchemy 2 — PostgreSQL when running the full stack via
+Docker Compose, SQLite as a local fallback. The cart service integrates with
+the external [Fake Store API](https://fakestoreapi.com/).
 
 | Service | Folder | Port | Domain |
 | ------- | ------ | ---- | ------ |
@@ -14,7 +15,8 @@ data in SQLite via SQLAlchemy 2. The cart service integrates with the external
 ## Stack
 
 - **Python 3.13** + **Flask 3** + **flask-openapi3** (OpenAPI/Swagger docs)
-- **SQLAlchemy 2** + **SQLite** for persistence
+- **SQLAlchemy 2** for persistence — **PostgreSQL** (`psycopg` driver) in the
+  compose stack, **SQLite** as the local fallback
 - **Pydantic** for request/response schemas
 - **requests** as the HTTP client for the external store API (cart only)
 - **PyJWT** (auth only) to sign and validate JWT session tokens
@@ -35,9 +37,20 @@ flowchart LR
     FE -->|"Cart operations<br/>(create, add, remove, summary)"| CART["Cart API<br/>Flask · :8000"]
     FE -->|"POST /user · POST /login<br/>GET /user"| AUTH["Auth API<br/>Flask · :8001"]
     CART -->|"Product details & prices"| FSA
-    CART --> CARTDB[("SQLite<br/>./db/cart.db")]
-    AUTH --> AUTHDB[("SQLite<br/>./db/auth.db")]
+    CART --> CARTDB[("PostgreSQL<br/>soft-arq-cart-db · :5432")]
+    AUTH --> AUTHDB[("PostgreSQL<br/>soft-arq-auth-db · :5432")]
 ```
+
+> **Design choice — one database per service:** each service owns a dedicated
+> PostgreSQL container (`soft-arq-cart-db` for the cart API, `soft-arq-auth-db`
+> for the auth API), provisioned by the compose file at the
+> [front-end repository](https://github.com/ommeirelles/puc-arq-software-front).
+> Keeping the databases isolated lets each service scale horizontally and
+> independently — no shared database, no cross-service coupling at the data
+> layer. The services connect through the `DB_URL` environment variable; when
+> it is not set they fall back to a local SQLite file (named from `DB_NAME`,
+> under `./db/`), which keeps the standalone `make run` / `make dev` and local
+> `python src/main.py` flows working without extra infrastructure.
 
 The auth service manages sessions with stateless JWTs: on login it validates
 the credentials against the local `users` table (passwords stored as Werkzeug
@@ -54,8 +67,9 @@ Key implementation points (shared by both services):
   (`cart.py` + `product.py` in the cart API, `auth.py` in the auth API).
 - Business logic lives in `src/services/`; SQLAlchemy models in `src/models/`;
   Pydantic request/response schemas in `src/schemas/`.
-- The SQLite database file is created under `./db/` and named from the
-  `DB_NAME` env var (`cart` / `auth`).
+- The database connection string comes from the `DB_URL` env var; when unset,
+  a SQLite file is created under `./db/` and named from the `DB_NAME` env var
+  (`cart` / `auth`).
 
 ## API Documentation
 
@@ -92,7 +106,8 @@ auth service (validated by a `before_request` middleware in
 | ----------------- | ---------------------------- | ----------------------------------------- |
 | `PORT`            | `8000`                       | HTTP port exposed to the host             |
 | `SECRET`          | `MY_SECRET_KEY`              | Flask secret key                          |
-| `DB_NAME`         | `cart`                       | SQLite database file name (under `./db`)  |
+| `DB_URL`          | *(none — SQLite fallback)*   | SQLAlchemy connection string; set by the compose file to `postgresql+psycopg://cart:cart@soft-arq-cart-db:5432/cart`. When unset, falls back to SQLite |
+| `DB_NAME`         | `cart`                       | SQLite database file name (under `./db`), used only when `DB_URL` is unset |
 | `ENV`             | `production`                 | `development` enables debug/SQL echo      |
 | `PRODUCT_API_URL` | *(none — required)*          | External product API base URL; set by the makefile / compose file to `https://fakestoreapi.com/` |
 | `AUTH_API_URL`    | *(none — required)*          | Auth API base URL used by the JWT middleware; set by the compose file to `http://soft-arq-auth:8001/` and by the makefile to `http://host.docker.internal:8001/` |
@@ -106,7 +121,8 @@ auth service (validated by a `before_request` middleware in
 | ------------------- | ---------------------------- | ----------------------------------------- |
 | `PORT`              | `8001`                       | HTTP port exposed to the host             |
 | `SECRET`            | `MY_SECRET_KEY`              | Flask secret key / JWT signing key        |
-| `DB_NAME`           | `auth`                       | SQLite database file name (under `./db`)  |
+| `DB_URL`            | *(none — SQLite fallback)*   | SQLAlchemy connection string; set by the compose file to `postgresql+psycopg://auth:auth@soft-arq-auth-db:5432/auth`. When unset, falls back to SQLite |
+| `DB_NAME`           | `auth`                       | SQLite database file name (under `./db`), used only when `DB_URL` is unset |
 | `ENV`               | `production`                 | `development` enables debug/SQL echo      |
 | `TOKEN_TTL_SECONDS` | `3600`                       | How long a JWT session token stays valid  |
 | `OTEL_SERVICE_NAME` | `puc-arq-soft-auth`          | Service name reported in telemetry        |
@@ -142,8 +158,9 @@ you have `make` and Docker available, you should get it running with:
 
 > Docker is used through the Podman compatibility layer.
 
-> To run the **full stack** (both APIs, the front-end, OTEL collector and
-> Jaeger), use the `docker-compose.yml` at the root of the
+> To run the **full stack** (both APIs, one PostgreSQL container per service,
+> the front-end, OTEL collector and Jaeger), use the `docker-compose.yml` at
+> the root of the
 > [front-end repository](https://github.com/ommeirelles/puc-arq-software-front):
 > `docker-compose up --build --watch`.
 
