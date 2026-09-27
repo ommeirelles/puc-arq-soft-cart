@@ -23,7 +23,6 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
     OTLPSpanExporter as HttpSpanExporter,
 )
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
@@ -85,5 +84,4 @@ def initTelemetry(app: Flask, engine: Engine) -> None:
     logging.getLogger().addHandler(LoggingHandler(logger_provider=loggerProvider))
 
     FlaskInstrumentor().instrument_app(app)
-    RequestsInstrumentor().instrument()
     SQLAlchemyInstrumentor().instrument(engine=engine)

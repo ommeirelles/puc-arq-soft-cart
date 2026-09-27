@@ -1,24 +1,28 @@
-port = 8001
-imageName = "arq-soft-auth"
-dbName = "auth"
-storeApi="https://fakestoreapi.com/"
-secret="SSS"
+port := 8001
+imageName := arq-soft-auth
+containerName := arq-soft-auth
+dbName := auth
+secret := SSS
 
-db:
-	if [ ! -f ./db/$(DB_NAME).db ]; then touch ./db/$(DB_NAME).db fi
-	sqlite3 ./db/$(DB_NAME).db "select 1"
+.PHONY: build run dev stop
 
 build:
-	- docker stop $(imageName)
-	- docker rm $(imageName)
+	- docker stop $(containerName)
+	- docker rm $(containerName)
 	docker build -t $(imageName) .
 
-run: db build
-	docker run -v ./db:/app/db \
---rm -p $(port):$(port) \
--e ENV=development -e DB_NAME=$(dbName) \
--e PORT=$(port) -e FAKE_STORE_API_URL=$(storeApi) -e SECRET=$(secret) $(imageName)
+run: build
+	docker run --name $(containerName) --rm -p $(port):$(port) \
+		-v ./db:/app/db \
+		-e DB_NAME=$(dbName) -e PORT=$(port) \
+		-e SECRET=$(secret) $(imageName)
 
-dev: db
-	- docker compose down --rmi all -v --remove-orphans
-	ENV=development docker compose up --build --watch
+dev: build
+	docker run --name $(containerName) --rm -p $(port):$(port) \
+		-v ./src:/app/src -v ./db:/app/db \
+		-e ENV=development -e DB_NAME=$(dbName) -e PORT=$(port) \
+		-e SECRET=$(secret) $(imageName)
+
+stop:
+	- docker stop $(containerName)
+	- docker rm $(containerName)

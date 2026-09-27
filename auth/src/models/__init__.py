@@ -1,5 +1,5 @@
 from models.base import Base
-from models.token import TokenModel
+from models.user import UserModel
 from sqlalchemy.orm import sessionmaker
 
 Session = sessionmaker()

@@ -4,8 +4,8 @@ class LoginRequest(BaseModel):
     """
     Login payload
     """
-    username: str = Field(..., description="The username")
-    password: str = Field(..., description="The password")
+    email: str = Field(..., description="The user email")
+    password: str = Field(..., description="The user password")
 
 class LoginResponse(BaseModel):
     """

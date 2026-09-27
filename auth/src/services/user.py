@@ -1,18 +1,41 @@
-import requests
-from os import environ
+from sqlalchemy import select
+from werkzeug.security import generate_password_hash
+from models import UserModel, Session
 from schemas import User
 
-cache: dict[int, User] = {}
-
 class UserService:
-    __api = environ.get("FAKE_STORE_API_URL", "https://fakestoreapi.com/")
+    def createUser(self, name: str, email: str, password: str) -> User | None:
+        """
+            Registers a new user, storing the password as a hash.
+            Returns None when the email is already registered
+        """
+        with Session() as session:
+            existing = session.execute(
+                select(UserModel).where(UserModel.email == email)
+            ).scalar_one_or_none()
 
-    def getUser(self, user_id: int) -> User | None:
-        if (cache.get(user_id) == None):
-            response = requests.get(f"{self.__api}users/{user_id}")
-            if (response.status_code != 200):
+            if (existing != None):
                 return None
 
-            cache[user_id] = User(**response.json())
+            user = UserModel()
+            user.name = name
+            user.email = email
+            user.password_hash = generate_password_hash(password)
+            session.add(user)
+            session.commit()
+            session.refresh(user)
 
-        return cache[user_id]
+            return User(id=user.id, name=user.name, email=user.email)
+
+    def getUser(self, user_id: int) -> User | None:
+        """
+            Returns the user info for the given id
+        """
+        user = Session().execute(
+            select(UserModel).where(UserModel.id == user_id)
+        ).scalar_one_or_none()
+
+        if (user == None):
+            return None
+
+        return User(id=user.id, name=user.name, email=user.email)

@@ -1,18 +1,17 @@
 from pydantic import BaseModel, Field
 
-class UserName(BaseModel):
+class CreateUserRequest(BaseModel):
     """
-    Name of an user
+    Payload to register a new user
     """
-    firstname: str = Field(..., description="The user first name")
-    lastname: str = Field(..., description="The user last name")
+    name: str = Field(..., description="The user full name")
+    email: str = Field(..., description="The user email")
+    password: str = Field(..., description="The user password")
 
 class User(BaseModel):
     """
-    User info from the external store API
+    User info
     """
     id: int = Field(..., description="The user ID")
+    name: str = Field(..., description="The user full name")
     email: str = Field(..., description="The user email")
-    username: str = Field(..., description="The username")
-    name: UserName = Field(..., description="The user name")
-    phone: str = Field(..., description="The user phone")
