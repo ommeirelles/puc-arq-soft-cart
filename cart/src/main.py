@@ -3,12 +3,16 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from flask_openapi3 import Info, Tag
 from flask_openapi3 import OpenAPI
+from flask_openapi3.models import SecurityScheme
 from blueprints import product_blueprint, cart_blueprint
+from middlewares import checkJwt
 from models import bind_engine, Base
 from telemetry import initTelemetry
 info = Info(title="Cart Store API", version="1.0.0")
-app = OpenAPI(__name__, info=info)
+security_schemes = {"bearerAuth": SecurityScheme(type="http", scheme="bearer", bearerFormat="JWT")}
+app = OpenAPI(__name__, info=info, security_schemes=security_schemes)
 
+app.before_request(checkJwt)
 app.register_api(product_blueprint)
 app.register_api(cart_blueprint)
 

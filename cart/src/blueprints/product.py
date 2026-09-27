@@ -26,19 +26,20 @@ class AddProductCartQuery(BaseModel):
     cart_guid: str = Field()
     quantity: int = Field(gt=0)
 
-@product_blueprint.post("/<int:product_id>", summary="Add a product to the cart by ID", tags=[product_tag], responses={200: ProductCartData, 400: ErrorSchema})
+@product_blueprint.post("/<int:product_id>", summary="Add a product to the cart by ID", tags=[product_tag], security=[{"bearerAuth": []}], responses={200: ProductCartData, 400: ErrorSchema, 404: ErrorSchema})
 def addProductToCart(path: AddProductCartPath, query: AddProductCartQuery):
     """
         Add a product by it's ID to the cart
     """
-    if (query.cart_guid == 0 or query.cart_guid == None or query.quantity <= 0):
-        return {"message": "Cart ID is required"}, 400
+    cart = CartService().getCart(query.cart_guid)
+    if (cart == None or cart.deleted == True):
+        return {"message": "Cart not found"}, 400
+
     try:
         product = ProductService().getProduct(path.product_id)
-        cart = CartService().getCart(query.cart_guid)
         products = CartService().addProductToCart(product.id, cart, query.quantity)
-        
-        return ProductCartData(data=[ProductCartEntry(product_id=prod.id, cart_guid=query.cart_guid, deleted=False, id=prod.id) for prod in products]).model_dump(), 200
+
+        return ProductCartData(data=[ProductCartEntry(product_id=prod.product_id, cart_guid=query.cart_guid, deleted=False, id=prod.id) for prod in products]).model_dump(), 200
     except Exception as e:
         return {"message": f"Error retrieving product: {str(e)}"}, 404
     
@@ -48,27 +49,28 @@ class RemoveFromCartPath(BaseModel):
     """
         Defines the path for removing a product from the cart
     """
-    row_id: int = Field(..., description="The row ID of the product to remove from the cart")
+    product_id: int = Field(..., description="The product ID to remove from the cart")
 
 class RemoveFromCartQuery(BaseModel):
     """
         Defines the query for removing a product from the cart
     """
     cart_guid: str = Field(..., description="The cart GUID of the product to remove from the cart")
-    
+    quantity: int | None = Field(default=None, gt=0, description="How many units to remove; removes all units when omitted")
 
-@product_blueprint.delete("/<int:row_id>", summary="Removes a product insertion from the cart ", tags=[product_tag], responses={200: SuccessSchema, 400: ErrorSchema})
+
+@product_blueprint.delete("/<int:product_id>", summary="Removes units of a product from the cart", tags=[product_tag], security=[{"bearerAuth": []}], responses={200: SuccessSchema, 400: ErrorSchema})
 def removeFromCart(path: RemoveFromCartPath, query: RemoveFromCartQuery):
     """
-        Removes a product insertion from the cart
+        Removes units of a product from the cart
     """
     service = CartService()
     cart = service.getCart(query.cart_guid)
     if (cart == None):
         return {"message": "Cart not found"}, 400
 
-    if (service.cartContains(path.row_id, cart)):
-        service.removeFromCart(path.row_id, cart)
+    if (service.cartContainsProduct(path.product_id, cart)):
+        service.removeProductFromCart(path.product_id, cart, query.quantity)
         return {"message": "Product removed from cart"}, 200
     else:
         return {"message": "Product not found in cart"}, 400

@@ -2,11 +2,13 @@ from os import environ, getcwd
 from sqlalchemy import create_engine
 from flask_openapi3 import Info, Tag
 from flask_openapi3 import OpenAPI
+from flask_openapi3.models import SecurityScheme
 from blueprints import auth_blueprint
 from models import bind_engine, Base
 from telemetry import initTelemetry
 info = Info(title="Auth Store API", version="1.0.0")
-app = OpenAPI(__name__, info=info)
+security_schemes = {"bearerAuth": SecurityScheme(type="http", scheme="bearer", bearerFormat="JWT")}
+app = OpenAPI(__name__, info=info, security_schemes=security_schemes)
 
 app.register_api(auth_blueprint)
 

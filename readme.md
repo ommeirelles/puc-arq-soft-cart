@@ -64,12 +64,17 @@ endpoint when running.
 
 ### Cart API Endpoints
 
+All cart endpoints require an `Authorization: Bearer <JWT>` header issued by the
+auth service (validated by a `before_request` middleware in
+`cart/src/middlewares/auth.py`); requests without a valid token are rejected with
+`401`.
+
 | Method   | Path                   | Description                                                        |
 | -------- | ---------------------- | ------------------------------------------------------------------ |
 | `GET`    | `/cart`                | Creates a new cart; returns `{id, guid, deleted}`.                 |
-| `GET`    | `/cart/summary?guid=`  | Cart summary: items plus total price.                              |
+| `GET`    | `/cart/summary?guid=`  | Cart summary: items grouped by product (`product_id` + `quantity`) plus total price. |
 | `POST`   | `/product/<product_id>`| Adds a product to a cart (`cart_guid`, `quantity` query params).   |
-| `DELETE` | `/product/<row_id>`    | Removes a cart entry (`cart_guid` query param).                    |
+| `DELETE` | `/product/<product_id>`| Removes units of a product from the cart (`cart_guid` query param; optional `quantity` — removes all units when omitted). |
 
 ### Auth API Endpoints
 
@@ -90,6 +95,7 @@ endpoint when running.
 | `DB_NAME`         | `cart`                       | SQLite database file name (under `./db`)  |
 | `ENV`             | `production`                 | `development` enables debug/SQL echo      |
 | `PRODUCT_API_URL` | *(none — required)*          | External product API base URL; set by the makefile / compose file to `https://fakestoreapi.com/` |
+| `AUTH_API_URL`    | *(none — required)*          | Auth API base URL used by the JWT middleware; set by the compose file to `http://soft-arq-auth:8001/` and by the makefile to `http://host.docker.internal:8001/` |
 | `OTEL_SERVICE_NAME` | `puc-arq-soft-cart`        | Service name reported in telemetry        |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc`       | OTLP exporter protocol (`grpc` or `http/protobuf`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` (`grpc`) or `http://localhost:4318` (`http/protobuf`) | OTLP collector endpoint |

@@ -9,6 +9,8 @@ class ProductService:
 
     def getProduct(self, product_id: int) -> Product:
         if (cache.get(product_id) == None):
-            cache[product_id] = Product(**requests.get(f"{self.__api}products/{product_id}").json())
+            response = requests.get(f"{self.__api}products/{product_id}", timeout=10)
+            response.raise_for_status()
+            cache[product_id] = Product(**response.json())
 
         return cache[product_id]

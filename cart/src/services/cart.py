@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
 from models import CartProductModel, CartModel, Session
 
 class CartService:
@@ -41,21 +41,34 @@ class CartService:
             
             return cart
         
-    def removeFromCart(self, row_id: int, cart: CartModel):
+    def removeProductFromCart(self, product_id: int, cart: CartModel, quantity: int | None = None) -> int:
+        """
+            Marks units of a product as deleted in the cart, removing all
+            units when the quantity is not informed. Returns how many
+            units were removed
+        """
         with Session() as session:
-            session.execute(
-                update(CartProductModel).where(
-                    CartProductModel.id == row_id, 
-                    CartProductModel.cart_guid == cart.guid
-                ).values(deleted=True)
-            )
+            rows = session.execute(
+                select(CartProductModel).where(
+                    CartProductModel.product_id == product_id,
+                    CartProductModel.cart_guid == cart.guid,
+                    CartProductModel.deleted == False
+                ).order_by(CartProductModel.id)
+            ).scalars().all()
+
+            to_remove = rows if quantity == None else rows[:quantity]
+            for row in to_remove:
+                row.deleted = True
             session.commit()
 
-    def cartContains(self, row_id: int, cart: CartModel) -> bool:
+            return len(to_remove)
+
+    def cartContainsProduct(self, product_id: int, cart: CartModel) -> bool:
         with Session() as session:
             return session.execute(
                 select(CartProductModel).where(
-                    CartProductModel.id == row_id, 
-                    CartProductModel.cart_guid == cart.guid
+                    CartProductModel.product_id == product_id,
+                    CartProductModel.cart_guid == cart.guid,
+                    CartProductModel.deleted == False
                 )
-            ).scalar_one_or_none() != None
+            ).scalars().first() != None

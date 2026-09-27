@@ -45,7 +45,7 @@ def login(body: LoginRequest):
 
     return LoginResponse(token=token).model_dump(), 200
 
-@auth_blueprint.get("/user", summary="Gets the authenticated user info", tags=[auth_tag], responses={200: User, 401: ErrorSchema, 404: ErrorSchema})
+@auth_blueprint.get("/user", summary="Gets the authenticated user info", tags=[auth_tag], security=[{"bearerAuth": []}], responses={200: User, 401: ErrorSchema, 404: ErrorSchema})
 def currentUser():
     """
         Validates the bearer JWT and returns the info of the user

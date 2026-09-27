@@ -22,3 +22,10 @@ class ProductCartEntry(BaseModel):
 
 class ProductCartData(BaseModel):
     data: list[ProductCartEntry]
+
+class CartSummaryEntry(BaseModel):
+    """
+    Schema of a product grouped in the cart summary
+    """
+    product_id: int = Field(..., description="The product ID")
+    quantity: int = Field(..., gt=0, description="How many units of the product are in the cart")
