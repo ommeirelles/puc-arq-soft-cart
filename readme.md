@@ -34,12 +34,23 @@ database and issues self-signed JWT session tokens.
 flowchart LR
     User([User]) --> FE["Front-end SPA<br/>React + Vite · :4173"]
     FE -->|"GET /products"| FSA["Fake Store API<br/>fakestoreapi.com"]
-    FE -->|"Cart operations<br/>(create, add, remove, summary)"| CART["Cart API<br/>Flask · :8000"]
-    FE -->|"POST /user · POST /login<br/>GET /user"| AUTH["Auth API<br/>Flask · :8001"]
+    FE -->|"Cart operations<br/>(create, add, remove, summary)"| LB["nginx load balancer<br/>:8000 (cart) · :8001 (auth)"]
+    FE -->|"POST /user · POST /login<br/>GET /user"| LB
+    LB -->|"round-robin"| CART["Cart API ×3 replicas<br/>Flask · :8000"]
+    LB -->|"round-robin"| AUTH["Auth API ×3 replicas<br/>Flask · :8001"]
     CART -->|"Product details & prices"| FSA
+    CART -->|"JWT validation"| AUTH
     CART --> CARTDB[("PostgreSQL<br/>soft-arq-cart-db · :5432")]
     AUTH --> AUTHDB[("PostgreSQL<br/>soft-arq-auth-db · :5432")]
 ```
+
+> **Design choice — horizontal scaling:** in the compose stack each service
+> runs **3 replicas** (`deploy.replicas`) behind an **nginx load balancer**
+> (`soft-arq-lb`) that round-robins requests across them while publishing the
+> same host ports (`8000` / `8001`), so clients need no changes. This is only
+> possible because the services are stateless — sessions are self-signed JWTs
+> validated cryptographically, and carts are identified by GUID — so any
+> replica can serve any request.
 
 > **Design choice — one database per service:** each service owns a dedicated
 > PostgreSQL container (`soft-arq-cart-db` for the cart API, `soft-arq-auth-db`
@@ -158,9 +169,9 @@ you have `make` and Docker available, you should get it running with:
 
 > Docker is used through the Podman compatibility layer.
 
-> To run the **full stack** (both APIs, one PostgreSQL container per service,
-> the front-end, OTEL collector and Jaeger), use the `docker-compose.yml` at
-> the root of the
+> To run the **full stack** (3 replicas per API behind the nginx load
+> balancer, one PostgreSQL container per service, the front-end, OTEL
+> collector and Jaeger), use the `docker-compose.yml` at the root of the
 > [front-end repository](https://github.com/ommeirelles/puc-arq-software-front):
 > `docker-compose up --build --watch`.
 
