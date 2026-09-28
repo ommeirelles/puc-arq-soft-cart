@@ -256,7 +256,9 @@ you have `make` and Docker available, you should get it running with:
 > balancer, one PostgreSQL container per service, the front-end, OTEL
 > collector and Jaeger), use the `docker-compose.yml` at the root of the
 > [front-end repository](https://github.com/ommeirelles/puc-arq-software-front):
-> `docker-compose up --build --watch`.
+> `docker-compose up --build`. The compose file builds these APIs straight
+> from this GitHub repository (git build context), so it works no matter
+> where the front-end repository is cloned.
 
 ### Locally
 
